@@ -606,32 +606,7 @@
   .btn:hover { background: rgba(77,184,232,0.1); }
   .btn-restart { display: none; }
 
-  /* ─── 3D MODEL ─── */
-  .model-wrap {
-    width: 100%;
-    max-width: 420px;
-    height: 300px;
-    position: relative;
-    z-index: 1;
-    margin: 1.5rem auto 0;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid rgba(77,184,232,0.15);
-  }
-  #modelCanvas {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-  }
-  .model-hint {
-    position: absolute;
-    bottom: 0.6rem; left: 0; right: 0;
-    text-align: center;
-    font-size: 0.6rem;
-    color: rgba(232,244,253,0.3);
-    letter-spacing: 0.1em;
-    pointer-events: none;
-  }
+  /* ─── FOOTER ─── */
   footer {
     text-align: center;
     padding: 3rem 1rem;
@@ -653,10 +628,6 @@
   <div class="badge">CT2 · Química · Represa Hidráulica 3D</div>
   <h1>Maqueta<br><em>Interactiva</em></h1>
   <p class="sub">Descubrí el ciclo del agua, las fórmulas de energía y la química del H₂O en esta represa.</p>
-  <div class="model-wrap">
-    <canvas id="modelCanvas"></canvas>
-    <div class="model-hint">rotación automática · arrastrá para girar</div>
-  </div>
   <div class="h2o-formula">H₂O</div>
   <div class="scroll-hint">▼ &nbsp; explorar</div>
 </div>
@@ -680,4 +651,21 @@
     <!-- background elements -->
     <div class="dam-ground"></div>
     <div class="hill hill-l"></div>
-    <div cl
+    <div class="hill hill-r"></div>
+
+    <!-- water -->
+    <div class="reservoir"></div>
+    <div class="fog"></div>
+
+    <!-- dam -->
+    <div class="dam-wall"></div>
+    <div class="tower t1"></div>
+    <div class="tower t2"></div>
+    <div class="tower t3"></div>
+    <div class="gate-hole"></div>
+    <div class="water-flow"></div>
+    <div class="river"></div>
+
+    <!-- trees (right side) -->
+    <div class="tree" style="right:55px;bottom:108px"><div class="tree-crown" style="width:18px;height:14px"></div><div class="tree-trunk" style="height:12px"></div></div>
+    <div class="tree" style="right:80px;bottom:104px"><div class="tree-crown" style="width:14px;height:12px"></div><div class="tree-trunk" styl
