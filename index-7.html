@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Represa Hidráulica 3D · CT2 Química</title>
+<style>
+:root {
+  --c: #4db8e8;
+  --c2: #f0a500;
+  --bg: #060e1a;
+  --bg2: #0a1628;
+  --t: #e8f4fd;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { background:var(--bg); color:var(--t); font-family:'Courier New',Courier,monospace; overflow-x:hidden; }
+
+#bgCanvas { position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.35; }
+
+.reveal { opacity:0; transform:translateY(40px); transition:opacity 0.7s ease,transform 0.7s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+.reveal-left { opacity:0; transform:translateX(-50px); transition:opacity 0.7s ease,transform 0.7s ease; }
+.reveal-left.visible { opacity:1; transform:translateX(0); }
+.reveal-right { opacity:0; transform:translateX(50px); transition:opacity 0.7s ease,transform 0.7s ease; }
+.reveal-right.visible { opacity:1; transform:translateX(0); }
+
+.hero { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; position:relative; z-index:1; overflow:hidden; }
+.hero-glow { position:absolute; inset:0; background:radial-gradient(ellipse at 20% 50%,rgba(26,111,168,0.4) 0%,transparent 60%),radial-gradient(ellipse at 80% 30%,rgba(77,184,232,0.15) 0%,transparent 50%); animation:glow-shift 8s ease-in-out infinite alternate; }
+@keyframes glow-shift { from{opacity:0.7} to{opacity:1;transform:scale(1.05)} }
+.hero-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(77,184,232,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(77,184,232,0.04) 1px,transparent 1px); background-size:40px 40px; mask-image:radial-gradient(ellipse at center,black 30%,transparent 80%); }
+.badge { display:inline-block; background:rgba(77,184,232,0.1); border:1px solid rgba(77,184,232,0.4); color:var(--c); font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; padding:0.4em 1.4em; border-radius:2px; margin-bottom:1.5rem; position:relative; z-index:1; animation:badge-in 1s ease both; }
+@keyframes badge-in { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:none} }
+.hero h1 { font-family:Georgia,serif; font-size:clamp(2.8rem,9vw,6.5rem); line-height:0.95; position:relative; z-index:1; animation:title-in 1.2s cubic-bezier(0.16,1,0.3,1) 0.2s both; letter-spacing:-0.02em; }
+@keyframes title-in { from{opacity:0;transform:translateY(30px) skewY(2deg)} to{opacity:1;transform:none} }
+.hero h1 em { color:var(--c); font-style:italic; }
+.hero h1 .line2 { display:block; font-size:0.38em; color:rgba(232,244,253,0.35); letter-spacing:0.12em; font-style:normal; margin-top:0.5em; font-family:'Courier New',monospace; }
+.hero-sub { margin-top:1.5rem; font-size:0.78rem; color:rgba(232,244,253,0.4); letter-spacing:0.06em; max-width:40ch; position:relative; z-index:1; animation:title-in 1s ease 0.5s both; }
+.hero-h2o { position:absolute; font-size:clamp(5rem,20vw,14rem); font-family:Georgia,serif; color:rgba(77,184,232,0.04); right:-2rem; bottom:-1rem; user-select:none; z-index:0; animation:float 10s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+.scroll-hint { position:absolute; bottom:2rem; font-size:0.6rem; letter-spacing:0.2em; color:rgba(255,255,255,0.2); animation:bounce 2.5s ease-in-out infinite,title-in 1s ease 1s both; z-index:1; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+
+.nav { position:sticky; top:0; z-index:100; background:rgba(6,14,26,0.88); backdrop-filter:blur(16px); border-bottom:1px solid rgba(77,184,232,0.1); display:flex; justify-content:center; gap:0.2rem; padding:0.6rem 1rem; flex-wrap:wrap; }
+.nav a { color:rgba(232,244,253,0.4); text-decoration:none; font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; padding:0.4em 0.9em; border-radius:2px; transition:all 0.2s; position:relative; }
+.nav a:hover { color:var(--c); background:rgba(77,184,232,0.06); }
+
+section { padding:6rem 1.5rem; max-width:920px; margin:0 auto; position:relative; z-index:1; }
+section + section { border-top:1px solid rgba(77,184,232,0.06); }
+.section-label { font-size:0.6rem; letter-spacing:0.25em; text-transform:uppercase; color:var(--c); margin-bottom:0.8rem; display:flex; align-items:center; gap:0.8rem; }
+.section-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(77,184,232,0.3),transparent); }
+h2 { font-family:Georgia,serif; font-size:clamp(1.8rem,5vw,3.2rem); line-height:1.05; margin-bottom:1.2rem; letter-spacing:-0.01em; }
+h2 em { color:var(--c); font-style:italic; }
+.intro { color:rgba(232,244,253,0.5); font-size:0.8rem; line-height:2; max-width:62ch; margin-bottom:2.5rem; }
+
+.dam-diagram { position:relative; background:linear-gradient(160deg,#0d2a45,#081825); border:1px solid rgba(77,184,232,0.15); border-radius:8px; padding:2rem; min-height:420px; overflow:hidden; box-shadow:0 0 60px rgba(26,111,168,0.2) inset; transition:box-shadow 0.4s; }
+.dam-diagram:hover { box-shadow:0 0 100px rgba(26,111,168,0.35) inset; }
+.dam-ground { position:absolute; bottom:0; left:0; right:0; height:90px; background:linear-gradient(0deg,#3d2210,#5a3520 60%,#6e4025); border-radius:0 0 8px 8px; }
+.hill { position:absolute; border-radius:50% 50% 0 0; }
+.hill-l { width:220px;height:150px;background:linear-gradient(180deg,#2d6a35,#1e4a24);bottom:60px;left:-30px; }
+.hill-r { width:200px;height:130px;background:linear-gradient(180deg,#2d6a35,#1e4a24);bottom:60px;right:-20px; }
+.reservoir { position:absolute;left:30px;bottom:85px;width:200px;height:100px;background:linear-gradient(180deg,rgba(77,184,232,0.7),rgba(26,111,168,0.9));border-radius:2px;overflow:hidden; }
+.reservoir::after { content:'';position:absolute;top:0;left:0;right:0;height:18px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.1) 0px,rgba(255,255,255,0.1) 3px,transparent 3px,transparent 20px);animation:ripple 3s linear infinite; }
+@keyframes ripple { from{transform:translateX(0)} to{transform:translateX(20px)} }
+.fog { position:absolute;left:25px;bottom:180px;width:210px;height:60px;background:radial-gradient(ellipse at 50% 60%,rgba(200,232,245,0.65),rgba(200,232,245,0.05));border-radius:50%;animation:fog-float 4s ease-in-out infinite; }
+@keyframes fog-float { 0%,100%{transform:translateY(0) scaleX(1)} 50%{transform:translateY(-8px) scaleX(1.05)} }
+.dam-wall { position:absolute;left:240px;bottom:75px;width:100px;height:200px;background:linear-gradient(180deg,#9a9a9a,#6e6e6e);clip-path:polygon(12% 0%,88% 0%,100% 100%,0% 100%); }
+.dam-wall::after { content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 14px,rgba(0,0,0,0.15) 14px,rgba(0,0,0,0.15) 15px);clip-path:polygon(12% 0%,88% 0%,100% 100%,0% 100%); }
+.tower { position:absolute;bottom:270px;width:22px;height:60px;background:linear-gradient(90deg,#8a8a8a,#b0b0b0);border-radius:2px 2px 0 0; }
+.t1{left:265px}.t2{left:293px;height:48px}.t3{left:316px;height:52px}
+.gate-hole { position:absolute;left:310px;bottom:130px;width:20px;height:16px;background:#060e1a;border-radius:2px; }
+.water-flow { position:absolute;left:325px;bottom:100px;width:130px;height:35px;background:linear-gradient(135deg,rgba(77,184,232,0.8),rgba(26,111,168,0.6));border-radius:0 0 30px 0;clip-path:polygon(0 0,100% 30%,100% 70%,0 40%);animation:flow 2s ease-in-out infinite; }
+@keyframes flow { 0%,100%{opacity:0.8} 50%{opacity:1} }
+.river { position:absolute;right:30px;bottom:85px;width:160px;height:30px;background:linear-gradient(90deg,rgba(77,184,232,0.5),rgba(26,111,168,0.3));border-radius:20px; }
+.tree { position:absolute;display:flex;flex-direction:column;align-items:center; }
+.tree-crown { background:#2d7a3a;border-radius:50%; }
+.tree-trunk { background:#5a3520;width:4px;border-radius:1px; }
+.spot { position:absolute;width:32px;height:32px;background:rgba(77,184,232,0.15);border:2px solid var(--c);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;transition:all 0.2s;z-index:10;animation:pulse-dot 2.5s ease-in-out infinite; }
+.spot:hover { background:rgba(77,184,232,0.4);transform:scale(1.25);box-shadow:0 0 20px rgba(77,184,232,0.5); }
+@keyframes pulse-dot { 0%,100%{box-shadow:0 0 0 0 rgba(77,184,232,0.4)} 50%{box-shadow:0 0 0 10px rgba(77,184,232,0)} }
+.info-panel { margin-top:1.5rem;background:rgba(10,26,50,0.9);border:1px solid rgba(77,184,232,0.2);border-radius:8px;padding:1.5rem;min-height:110px;transition:all 0.3s; }
+.info-panel h3 { font-family:Georgia,serif;font-size:1.1rem;color:var(--c);margin-bottom:0.5rem; }
+.info-panel p { font-size:0.73rem;line-height:1.85;color:rgba(232,244,253,0.7); }
+.formula-tag { display:inline-block;background:rgba(240,165,0,0.12);border:1px solid rgba(240,165,0,0.35);color:var(--c2);font-size:0.7rem;padding:0.2em 0.8em;border-radius:3px;margin-top:0.6rem; }
+.select-hint { font-size:0.7rem;color:rgba(232,244,253,0.25);text-align:center;font-style:italic; }
+
+.states-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:rgba(77,184,232,0.08);border:1px solid rgba(77,184,232,0.1);border-radius:8px;overflow:hidden;margin-bottom:2rem; }
+.state-card { background:var(--bg2);padding:2rem 1.5rem;transition:all 0.3s;position:relative;overflow:hidden; }
+.state-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--c),transparent);transform:scaleX(0);transform-origin:left;transition:transform 0.4s; }
+.state-card:hover::before { transform:scaleX(1); }
+.state-card:hover { background:#0d1f38; }
+.state-icon { font-size:2.2rem;margin-bottom:1rem;display:block; }
+.state-card h3 { font-family:Georgia,serif;font-size:1.05rem;margin-bottom:0.5rem; }
+.state-card p { font-size:0.71rem;color:rgba(232,244,253,0.55);line-height:1.8; }
+.state-badge { display:inline-block;font-size:0.62rem;margin-top:0.7rem;padding:0.25em 0.7em;border-radius:3px; }
+.s { background:rgba(200,232,245,0.1);color:#c8e8f5;border:1px solid rgba(200,232,245,0.25); }
+.l { background:rgba(26,111,168,0.15);color:var(--c);border:1px solid rgba(77,184,232,0.25); }
+.g { background:rgba(77,184,232,0.06);color:#aad8f0;border:1px solid rgba(77,184,232,0.15); }
+
+.cycle-steps { display:flex;flex-direction:column;gap:0;position:relative;padding-left:2.5rem; }
+.cycle-steps::before { content:'';position:absolute;left:13px;top:20px;bottom:20px;width:2px;background:linear-gradient(180deg,var(--c),rgba(77,184,232,0.05)); }
+.cycle-step { position:relative;padding:1.4rem 0 1.4rem 1rem;border-bottom:1px solid rgba(77,184,232,0.06);transition:all 0.2s; }
+.cycle-step:hover { padding-left:1.8rem; }
+.cycle-step::before { content:'';position:absolute;left:-2.1rem;top:1.8rem;width:14px;height:14px;background:var(--bg2);border:2px solid var(--c);border-radius:50%;transition:all 0.2s; }
+.cycle-step:hover::before { background:var(--c);box-shadow:0 0 12px rgba(77,184,232,0.5); }
+.cycle-step h4 { font-size:0.85rem;color:var(--c);margin-bottom:0.4rem; }
+.cycle-step p { font-size:0.72rem;color:rgba(232,244,253,0.55);line-height:1.8; }
+.rxn { font-family:monospace;color:var(--c2);font-size:0.78rem;display:block;margin-top:0.4rem; }
+
+.news-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:2rem; }
+.news-card { background:rgba(8,18,34,0.8);border:1px solid rgba(77,184,232,0.1);border-radius:8px;padding:1.6rem;display:flex;flex-direction:column;gap:0.6rem;transition:all 0.3s;position:relative;overflow:hidden; }
+.news-card::after { content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--c2),transparent);transform:scaleX(0);transform-origin:left;transition:transform 0.4s; }
+.news-card:hover { border-color:rgba(77,184,232,0.3);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.4); }
+.news-card:hover::after { transform:scaleX(1); }
+.news-date { font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--c2); }
+.news-card h4 { font-family:Georgia,serif;font-size:0.95rem;line-height:1.4; }
+.news-card p { font-size:0.69rem;color:rgba(232,244,253,0.5);line-height:1.8;flex:1; }
+.news-tag { display:inline-block;font-size:0.58rem;padding:0.2em 0.6em;border-radius:3px;background:rgba(77,184,232,0.08);border:1px solid rgba(77,184,232,0.2);color:var(--c);align-self:flex-start; }
+.news-conexion { background:rgba(10,26,50,0.7);border-left:3px solid var(--c2);padding:1.2rem 1.4rem;border-radius:0 8px 8px 0;font-size:0.72rem;line-height:1.9;color:rgba(232,244,253,0.65);margin-top:0.5rem; }
+.news-conexion strong { color:var(--c2); }
+
+.name-input-wrap { margin-bottom:2rem;display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap; }
+.name-input-wrap input,.pwd-wrap input { background:rgba(8,18,34,0.9);border:1px solid rgba(77,184,232,0.25);border-radius:4px;padding:0.75em 1em;color:var(--t);font-family:'Courier New',monospace;font-size:0.8rem;flex:1;min-width:180px;outline:none;transition:border-color 0.2s; }
+.name-input-wrap input:focus,.pwd-wrap input:focus { border-color:var(--c); }
+.name-display { font-size:0.72rem;color:var(--c);margin-bottom:1.5rem;display:none; }
+.quiz-card { background:rgba(8,18,34,0.7);border:1px solid rgba(77,184,232,0.1);border-radius:8px;padding:2rem;margin-bottom:1.2rem;transition:border-color 0.3s; }
+.quiz-card:hover { border-color:rgba(77,184,232,0.22); }
+.quiz-q { font-family:Georgia,serif;font-size:1rem;margin-bottom:1.2rem;line-height:1.5; }
+.quiz-opts { display:flex;flex-direction:column;gap:0.5rem; }
+.quiz-opt { background:rgba(6,14,26,0.8);border:1px solid rgba(77,184,232,0.1);border-radius:4px;padding:0.8rem 1rem;font-size:0.73rem;cursor:pointer;transition:all 0.15s;text-align:left;color:var(--t);font-family:'Courier New',monospace; }
+.quiz-opt:hover:not(:disabled) { border-color:var(--c);background:rgba(77,184,232,0.07);transform:translateX(4px); }
+.quiz-opt.correct { border-color:#4caf50;background:rgba(76,175,80,0.1);color:#a5d6a7; }
+.quiz-opt.wrong { border-color:#e57373;background:rgba(229,115,115,0.08);color:#ef9a9a; }
+.quiz-opt:disabled { cursor:default; }
+.quiz-feedback { margin-top:1rem;font-size:0.71rem;color:rgba(232,244,253,0.6);line-height:1.8;display:none;padding:0.9rem;border-radius:4px;background:rgba(0,0,0,0.25); }
+.quiz-score { font-family:Georgia,serif;font-size:3rem;text-align:center;color:var(--c);display:none;padding:2rem;animation:score-pop 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes score-pop { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+
+.lb-live { display:flex;align-items:center;gap:0.5rem;margin-bottom:1.5rem; }
+.lb-dot { width:8px;height:8px;border-radius:50%;background:#4caf50;animation:pulse-dot 2s infinite; }
+.lb-live span { font-size:0.62rem;color:rgba(232,244,253,0.3);letter-spacing:0.15em;text-transform:uppercase; }
+.lb-wrap { background:rgba(8,18,34,0.6);border:1px solid rgba(77,184,232,0.1);border-radius:8px;overflow:hidden;margin-bottom:1rem; }
+.lb-row { display:grid;grid-template-columns:1fr auto auto auto;gap:0.5rem;padding:0.8rem 1rem;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.73rem;color:rgba(232,244,253,0.7);align-items:center;transition:background 0.2s;animation:row-in 0.4s ease both; }
+@keyframes row-in { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:none} }
+.lb-row:hover { background:rgba(77,184,232,0.04); }
+.lb-row.gold { color:var(--c2);font-weight:bold; }
+.lb-header { font-size:0.6rem!important;letter-spacing:0.12em;color:var(--c)!important;text-transform:uppercase;border-bottom:1px solid rgba(77,184,232,0.2)!important;font-weight:normal!important;animation:none!important; }
+
+.btn { display:inline-block;background:transparent;border:1px solid var(--c);color:var(--c);font-family:'Courier New',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.7em 1.8em;border-radius:3px;cursor:pointer;transition:all 0.2s;margin-top:1rem; }
+.btn:hover { background:rgba(77,184,232,0.1);box-shadow:0 0 20px rgba(77,184,232,0.2); }
+.btn-clear { border-color:#e57373;color:#e57373; }
+.btn-clear:hover { background:rgba(229,115,115,0.1); }
+
+footer { text-align:center;padding:3rem 1rem;border-top:1px solid rgba(77,184,232,0.06);font-size:0.62rem;color:rgba(232,244,253,0.2);letter-spacing:0.1em;position:relative;z-index:1; }
+footer span { color:rgba(77,184,232,0.35); }
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-grid"></div>
+  <div class="badge">CT2 · Química · Represa Hidráulica 3D</div>
+  <h1>Maqueta<br><em>Interactiva</em><span class="line2">H₂O · Ciclo del agua · Uruguay 2023</span></h1>
+  <p class="hero-sub">Descubrí el ciclo del agua, la química del H₂O y la crisis hídrica de Uruguay.</p>
+  <div class="hero-h2o">H₂O</div>
+  <div class="scroll-hint">▼ &nbsp; explorar</div>
+</div>
+
+<nav class="nav">
+  <a href="#mapa">Mapa</a>
+  <a href="#estados">Estados</a>
+  <a href="#ciclo">Ciclo</a>
+  <a href="#noticias">Uruguay 2023</a>
+  <a href="#quiz">Quiz</a>
+  <a href="#leaderboard-section">Leaderboard</a>
+</nav>
+
+<section id="mapa">
+  <div class="section-label reveal">01 — Explorar</div>
+  <h2 class="reveal">Mapa <em>interactivo</em></h2>
+  <p class="intro reveal">Seleccioná cada punto numerado del diagrama para conocer la función química y física de cada parte de la represa.</p>
+  <div class="dam-diagram reveal">
+    <div class="dam-ground"></div>
+    <div class="hill hill-l"></div>
+    <div class="hill hill-r"></div>
+    <div class="reservoir"></div>
+    <div class="fog"></div>
+    <div class="dam-wall"></div>
+    <div class="tower t1"></div>
+    <div class="tower t2"></div>
+    <div class="tower t3"></div>
+    <div class="gate-hole"></div>
+    <div class="water-flow"></div>
+    <div class="river"></div>
+    <div class="tree" style="right:55px;bottom:108px"><div class="tree-crown" style="width:18px;height:14px"></div><div class="tree-trunk" style="height:12px"></div></div>
+    <div class="tree" style="right:80px;bottom:104px"><div class="tree-crown" style="width:14px;height:12px"></div><div class="tree-trunk" style="height:10px"></div></div>
+    <div class="tree" style="right:38px;bottom:106px"><div class="tree-crown" style="width:16px;height:13px"></div><div class="tree-trunk" style="height:11px"></div></div>
+    <div class="spot" data-info="1" style="left:90px;bottom:200px">1</div>
+    <div class="spot" data-info="2" style="left:135px;bottom:235px">2</div>
+    <div class="spot" data-info="3" style="left:268px;bottom:280px">3</div>
+    <div class="spot" data-info="4" style="left:265px;bottom:160px">4</div>
+    <div class="spot" data-info="5" style="left:320px;bottom:120px">5</div>
+    <div class="spot" data-info="6" style="right:60px;bottom:125px">6</div>
+  </div>
+  <div class="info-panel reveal" id="infoPanel">
+    <p class="select-hint">↑ Seleccioná un número en el diagrama para ver información</p>
+  </div>
+</section>
+
+<section id="estados">
+  <div class="section-label reveal">02 — Química</div>
+  <h2 class="reveal">Los tres <em>estados</em> del agua</h2>
+  <p class="intro reveal">La maqueta ilustra simultáneamente los tres estados de la materia del H₂O.</p>
+  <div class="states-grid">
+    <div class="state-card reveal-left">
+      <span class="state-icon">💧</span>
+      <h3>Estado Líquido</h3>
+      <p>El agua del embalse y del río aguas abajo. Las moléculas de H₂O tienen libertad de movimiento pero se mantienen unidas por puentes de hidrógeno.</p>
+      <span class="state-badge l">H₂O (l)</span>
+    </div>
+    <div class="state-card reveal">
+      <span class="state-icon">☁️</span>
+      <h3>Estado Gaseoso</h3>
+      <p>El vapor que se eleva del embalse por evaporación. Las moléculas tienen suficiente energía cinética para escapar de la superficie líquida.</p>
+      <span class="state-badge g">H₂O (g)</span>
+    </div>
+    <div class="state-card reveal-right">
+      <span class="state-icon">🧊</span>
+      <h3>Estado Sólido</h3>
+      <p>El hielo en zonas de alta montaña, representado en la parte superior de la maqueta. Las moléculas vibran en una red cristalina fija.</p>
+      <span class="state-badge s">H₂O (s)</span>
+    </div>
+  </div>
+  <p class="reveal" style="font-size:0.7rem;color:rgba(232,244,253,0.3);line-height:1.9">
+    <strong style="color:var(--c)">Propiedades clave del H₂O:</strong> densidad 1 g/cm³ · punto de ebullición 100°C · molécula polar · ángulo O–H de 104.5° · forma hasta 4 puentes de hidrógeno simultáneos.
+  </p>
+</section>
+
+<section id="ciclo">
+  <div class="section-label reveal">03 — Ciclo hidrológico</div>
+  <h2 class="reveal">Del embalse <em>al cielo</em></h2>
+  <p class="intro reveal">La represa interviene directamente en el ciclo del agua. Estos son los procesos presentes en esta maqueta.</p>
+  <div class="cycle-steps">
+    <div class="cycle-step reveal"><h4>Evaporación</h4><p>El calor solar transfiere energía a las moléculas superficiales del embalse, permitiéndoles escapar como vapor. Representado por la zona elevada sobre el embalse.</p><span class="rxn">H₂O (l)  →  H₂O (g)</span></div>
+    <div class="cycle-step reveal"><h4>Condensación</h4><p>Al subir, el vapor se enfría. Las moléculas se ralentizan y forman gotitas microscópicas que crean las nubes, representadas en la parte superior de la maqueta.</p><span class="rxn">H₂O (g)  →  H₂O (l)</span></div>
+    <div class="cycle-step reveal"><h4>Precipitación</h4><p>Cuando las gotitas en las nubes se unen y pesan demasiado, caen como lluvia o nieve. Esto recarga el embalse de la represa.</p><span class="rxn">H₂O (l)  cae como lluvia  →  recarga el embalse</span></div>
+    <div class="cycle-step reveal"><h4>Almacenamiento y energía potencial</h4><p>El agua acumulada en el embalse a una altura h tiene energía potencial gravitacional. Cuanto más alto y más masa, mayor la energía disponible.</p><span class="rxn">Ep = m · g · h</span></div>
+    <div class="cycle-step reveal"><h4>Escorrentía — Río aguas abajo</h4><p>El agua liberada por la compuerta convierte energía potencial en cinética mientras baja. Fluye como río, completando el ciclo.</p><span class="rxn">Ec = ½ · m · v²</span></div>
+  </div>
+</section>
+
+<section id="noticias">
+  <div class="section-label reveal">04 — Contexto real</div>
+  <h2 class="reveal">Uruguay 2023: cuando las <em>represas se secaron</em></h2>
+  <p class="intro reveal">Lo que representa esta maqueta pasó de verdad. En 2023 Uruguay vivió la peor crisis hídrica en 74 años.</p>
+  <div class="news-grid">
+    <div class="news-card reveal-left">
+      <span class="news-date">Junio — Julio 2023</span>
+      <h4>Represa Paso Severino: de 67 millones a casi cero</h4>
+      <p>La represa Paso Severino, sobre el río Santa Lucía, es la principal fuente de agua potable para Montevideo. En junio de 2023 llegó al 2,4% de su capacidad: de 67 millones de metros cúbicos, le quedaban apenas 1,2 millones.</p>
+      <span class="news-tag">Represa · Paso Severino · Río Santa Lucía</span>
+    </div>
+    <div class="news-card reveal">
+      <span class="news-date">Mayo — Julio 2023</span>
+      <h4>Emergencia hídrica: casi 2 millones sin agua potable</h4>
+      <p>El gobierno decretó emergencia hídrica para Montevideo. El agua del grifo se volvió salobre porque OSE tuvo que captar agua influenciada por el Río de la Plata, un estuario con contacto al océano.</p>
+      <span class="news-tag">Crisis hídrica · OSE · Montevideo</span>
+    </div>
+    <div class="news-card reveal-left">
+      <span class="news-date">2022 — 2023</span>
+      <h4>Tres años de sequía: La Niña y cambio climático</h4>
+      <p>La sequía fue provocada por el fenómeno La Niña y agravada por el cambio climático. En 2022 Uruguay recibió solo el 44% de las precipitaciones promedio. Las pérdidas superaron los 1.000 millones de dólares.</p>
+      <span class="news-tag">La Niña · Cambio climático · Sequía extrema</span>
+    </div>
+    <div class="news-card reveal-right">
+      <span class="news-date">2025 — 2026</span>
+      <h4>El Proyecto Casupá: la respuesta a la crisis</h4>
+      <p>Tras la crisis de 2023, el Proyecto Casupá retomó impulso. La represa sobre la cuenca alta del Santa Lucía cubriría el 70% de la demanda metropolitana. Su construcción está prevista para 2026.</p>
+      <span class="news-tag">Infraestructura · Proyecto Casupá · 2026</span>
+    </div>
+  </div>
+  <div class="news-conexion reveal">
+    <strong>¿Qué tiene que ver con esta maqueta?</strong><br>
+    Lo que se ve a escala pequeña refleja sistemas reales con consecuencias enormes. El embalse de la maqueta es Paso Severino. La compuerta controla el caudal igual que en la vida real. El vapor muestra la evaporación que alimenta el ciclo — cuando ese ciclo falla por sequía, una ciudad entera puede quedarse sin agua.
+  </div>
+</section>
+
+<section id="quiz">
+  <div class="section-label reveal">05 — Evaluación</div>
+  <h2 class="reveal">Quiz <em>rápido</em></h2>
+  <p class="intro reveal">5 preguntas sobre lo que acabás de explorar. ¡Seleccioná la opción correcta!</p>
+  <div class="name-input-wrap reveal" id="nameWrap">
+    <input type="text" id="nameInput" placeholder="Escribí tu nombre antes de empezar..." maxlength="40" />
+    <button class="btn" id="startQuizBtn">Empezar</button>
+  </div>
+  <div class="name-display" id="nameDisplay"></div>
+  <div id="quizArea" style="display:none">
+    <div class="quiz-card" id="q1">
+      <div class="quiz-q">1. ¿Qué proceso representa la zona elevada sobre el embalse?</div>
+      <div class="quiz-opts">
+        <button class="quiz-opt" data-q="1" data-correct="false">A) Precipitación — agua que cae del cielo</button>
+        <button class="quiz-opt" data-q="1" data-correct="true">B) Evaporación — H₂O (l) → H₂O (g)</button>
+        <button class="quiz-opt" data-q="1" data-correct="false">C) Condensación — formación de nubes</button>
+        <button class="quiz-opt" data-q="1" data-correct="false">D) Escorrentía — agua que fluye</button>
+      </div>
+      <div class="quiz-feedback" id="fb1">El vapor que se eleva representa la evaporación. El agua pasa de estado líquido a gaseoso al absorber energía del sol.</div>
+    </div>
+    <div class="quiz-card" id="q2">
+      <div class="quiz-q">2. ¿Cuál fue la represa más afectada por la sequía de Uruguay en 2023?</div>
+      <div class="quiz-opts">
+        <button class="quiz-opt" data-q="2" data-correct="false">A) Represa de Salto Grande</button>
+        <button class="quiz-opt" data-q="2" data-correct="true">B) Represa Paso Severino</button>
+        <button class="quiz-opt" data-q="2" data-correct="false">C) Represa de Baygorria</button>
+        <button class="quiz-opt" data-q="2" data-correct="false">D) Represa del Palmar</button>
+      </div>
+      <div class="quiz-feedback" id="fb2">Paso Severino, sobre el río Santa Lucía, es la principal fuente de agua potable de Montevideo. En 2023 llegó al 2,4% de su capacidad, dejando a casi 2 millones de personas sin agua potable segura.</div>
+    </div>
+    <div class="quiz-card" id="q3">
+      <div class="quiz-q">3. ¿Cuál de estas NO es una propiedad química del H₂O?</div>
+      <div class="quiz-opts">
+        <button class="quiz-opt" data-q="3" data-correct="false">A) Es una molécula polar</button>
+        <button class="quiz-opt" data-q="3" data-correct="false">B) Forma puentes de hidrógeno</button>
+        <button class="quiz-opt" data-q="3" data-correct="true">C) Es un elemento puro</button>
+        <button class="quiz-opt" data-q="3" data-correct="false">D) Tiene fórmula molecular H₂O</button>
+      </div>
+      <div class="quiz-feedback" id="fb3">El agua NO es un elemento puro, es un compuesto formado por 2 átomos de hidrógeno y 1 de oxígeno. Los elementos puros tienen un solo tipo de átomo (como O₂ o H₂).</div>
+    </div>
+    <div class="quiz-card" id="q4">
+      <div class="quiz-q">4. ¿Qué sucede con la energía potencial del agua al pasar por la compuerta?</div>
+      <div class="quiz-opts">
+        <button class="quiz-opt" data-q="4" data-correct="false">A) Se destruye completamente</button>
+        <button class="quiz-opt" data-q="4" data-correct="true">B) Se convierte en energía cinética</button>
+        <button class="quiz-opt" data-q="4" data-correct="false">C) Se convierte en energía química</button>
+        <button class="quiz-opt" data-q="4" data-correct="false">D) Se mantiene igual porque el agua es líquida</button>
+      </div>
+      <div class="quiz-feedback" id="fb4">La energía se conserva. La Ep = mgh almacenada en el embalse se convierte en Ec = ½mv² cuando el agua baja por la compuerta y gana velocidad.</div>
+    </div>
+    <div class="quiz-card" id="q5">
+      <div class="quiz-q">5. La forma trapezoidal del muro (más ancha abajo que arriba) se debe a que...</div>
+      <div class="quiz-opts">
+        <button class="quiz-opt" data-q="5" data-correct="false">A) Es más fácil de construir así</button>
+        <button class="quiz-opt" data-q="5" data-correct="false">B) Se ve más bonita visualmente</button>
+        <button class="quiz-opt" data-q="5" data-correct="true">C) La presión del agua aumenta con la profundidad (P = ρgh)</button>
+        <button class="quiz-opt" data-q="5" data-correct="false">D) Ahorra materiales en la cima</button>
+      </div>
+      <div class="quiz-feedback" id="fb5">Como P = ρgh, la presión es mayor en el fondo. La base más ancha da más resistencia donde hay más fuerza hidrostática.</div>
+    </div>
+    <div class="quiz-score" id="finalScore"></div>
+  </div>
+</section>
+
+<section id="leaderboard-section">
+  <div class="section-label reveal">06 — En vivo</div>
+  <h2 class="reveal">Leaderboard <em>en vivo</em></h2>
+  <p class="intro reveal">Los resultados se actualizan automáticamente cada vez que alguien termina el quiz.</p>
+  <div class="lb-live reveal">
+    <div class="lb-dot"></div>
+    <span>En vivo · actualiza cada 10 segundos</span>
+  </div>
+  <div class="lb-wrap reveal">
+    <div class="lb-row lb-header"><span>Nombre</span><span>Puntaje</span><span>%</span><span>Fecha</span></div>
+    <div id="lbList"><div style="padding:1.5rem;font-size:0.73rem;color:rgba(232,244,253,0.25)">Cargando resultados...</div></div>
+  </div>
+  <div class="reveal"></div>
+</section>
+
+<footer><p>Maqueta: <span>Represa Hidráulica 3D</span> · CT2 Química · Materiales reciclados</p></footer>
+
+<script>
+// ── PARTÍCULAS ──
+(function(){
+  var c=document.getElementById('bgCanvas'),ctx=c.getContext('2d'),W,H,P=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  resize(); window.addEventListener('resize',resize);
+  for(var i=0;i<70;i++) P.push({x:Math.random()*1920,y:Math.random()*1080,r:Math.random()*1.5+0.3,vx:(Math.random()-.5)*.3,vy:-Math.random()*.5-.1,a:Math.random()*.6+.1});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    P.forEach(function(p){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.y<0){p.y=H;p.x=Math.random()*W;}
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(77,184,232,'+p.a+')'; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── SCROLL REVEAL ──
+(function(){
+  var els=document.querySelectorAll('.reveal,.reveal-left,.reveal-right');
+  if(!window.IntersectionObserver){els.forEach(function(e){e.classList.add('visible');});return;}
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}});
+  },{threshold:0.1});
+  els.forEach(function(el){io.observe(el);});
+})();
+
+document.addEventListener('DOMContentLoaded',function(){
+
+  // ── MAPA ──
+  var info={
+    1:{title:'Embalse — H₂O (l)',body:'El embalse almacena agua líquida retenida por el muro de la presa. El agua tiene aquí su máxima energía potencial (Ep = mgh).',formula:'Ep = m · g · h'},
+    2:{title:'Evaporación — H₂O (g)',body:'El calor solar transfiere energía a las moléculas superficiales del embalse, que pasan de estado líquido a gaseoso. Es el inicio del ciclo hidrológico.',formula:'H₂O (l) → H₂O (g)'},
+    3:{title:'Torres de control',body:'Las torres representan las estructuras de monitoreo de la presa. Desde ellas se controla el caudal liberado por las compuertas para regular el río aguas abajo.',formula:null},
+    4:{title:'Presa (concreto)',body:'El muro trapezoidal imita el concreto de una presa real. La forma más ancha en la base no es al azar: la presión P = ρgh es mayor en el fondo, así que ahí se necesita más resistencia.',formula:'P = ρgh'},
+    5:{title:'Compuerta — Energía cinética',body:'La compuerta controla cuánta agua pasa del embalse al río. Al liberarse, el agua convierte su energía potencial en energía cinética. En turbinas reales, ese movimiento genera electricidad.',formula:'Ep → Ec: mgh → ½mv²'},
+    6:{title:'Río aguas abajo',body:'El agua liberada fluye como río hacia zonas más bajas. Aquí la energía cinética es máxima. El ecosistema aguas abajo representa el impacto ambiental de toda represa sobre el territorio.',formula:'Ec = ½ · m · v²'}
+  };
+  document.querySelectorAll('.spot').forEach(function(s){
+    s.addEventListener('click',function(){
+      var d=info[parseInt(this.getAttribute('data-info'))];
+      var p=document.getElementById('infoPanel');
+      p.style.borderColor='rgba(77,184,232,0.5)';
+      p.innerHTML='<h3>'+d.title+'</h3><p>'+d.body+'</p>'+(d.formula?'<span class="formula-tag">'+d.formula+'</span>':'');
+      setTimeout(function(){p.style.borderColor='';},1000);
+    });
+  });
+
+  // ── QUIZ ──
+  var playerName='',score=0,answered=0,total=5;
+  document.getElementById('startQuizBtn').addEventListener('click',function(){
+    var v=document.getElementById('nameInput').value.trim();
+    if(!v){document.getElementById('nameInput').style.borderColor='#ef9a9a';return;}
+    playerName=v;
+    document.getElementById('nameWrap').style.display='none';
+    var nd=document.getElementById('nameDisplay');
+    nd.textContent='Respondiendo como: '+playerName; nd.style.display='block';
+    document.getElementById('quizArea').style.display='block';
+  });
+  document.querySelectorAll('.quiz-opt').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      if(this.disabled)return;
+      var q=this.getAttribute('data-q'),ok=this.getAttribute('data-correct')==='true';
+      var opts=this.closest('.quiz-opts').querySelectorAll('.quiz-opt');
+      opts.forEach(function(o){o.disabled=true;});
+      var fb=document.getElementById('fb'+q);
+      if(ok){this.classList.add('correct');score++;fb.style.color='#a5d6a7';fb.textContent='✓ Correcto. '+fb.textContent;}
+      else{this.classList.add('wrong');opts.forEach(function(o){if(o.getAttribute('data-correct')==='true')o.classList.add('correct');});fb.style.color='#ef9a9a';fb.textContent='✗ Incorrecto. '+fb.textContent;}
+      fb.style.display='block';
+      answered++;
+      if(answered===total)setTimeout(showFinal,600);
+    });
+  });
+  function showFinal(){
+    var pct=Math.round((score/total)*100);
+    var msg=pct===100?'¡Perfecto! 🎯':pct>=60?'¡Bien hecho! 👍':'Seguí explorando 💪';
+    var fd=document.getElementById('finalScore');
+    fd.innerHTML=score+'/'+total+'<br><span style="font-size:1rem;color:rgba(232,244,253,0.4)">'+pct+'% — '+msg+'</span>';
+    fd.style.display='block';
+    saveScore(playerName,score,total,pct);
+  }
+
+  // ── SUPABASE ──
+  var SU='https://hopplkyuqelidytqixzv.supabase.co';
+  var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvcHBsa3l1cWVsaWR5dHFpeHp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MTY2NDcsImV4cCI6MjA4OTQ5MjY0N30.FSn9rqctf5QA8Yb1B1b8CFlS6cJI-Yjwrv9PoKUbEn8';
+  var H={'apikey':SK,'Authorization':'Bearer '+SK};
+
+  function saveScore(name,sc,tot,pct){
+    fetch(SU+'/rest/v1/resultados',{method:'POST',headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},H),body:JSON.stringify({nombre:name,puntaje:sc,total:tot,porcentaje:pct,fecha:new Date().toLocaleDateString('es-UY')})})
+    .then(function(r){if(r.ok)renderLeaderboard();}).catch(function(){});
+  }
+
+  function renderLeaderboard(){
+    fetch(SU+'/rest/v1/resultados?select=*&order=porcentaje.desc,puntaje.desc',{headers:H})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var el=document.getElementById('lbList');
+      if(!data||data.length===0){el.innerHTML='<div style="padding:1.5rem;font-size:0.73rem;color:rgba(232,244,253,0.25)">Todavía no hay resultados.</div>';return;}
+      var medals=['🥇','🥈','🥉'];
+      el.innerHTML=data.map(function(r,i){
+        return '<div class="lb-row'+(i===0?' gold':'')+'" style="animation-delay:'+(i*0.05)+'s"><span>'+medals[i]||((i+1)+'.')+' '+r.nombre+'</span><span>'+r.puntaje+'/'+r.total+'</span><span>'+r.porcentaje+'%</span><span style="color:rgba(232,244,253,0.3)">'+(r.fecha||'')+'</span></div>';
+      }).join('');
+    }).catch(function(){document.getElementById('lbList').innerHTML='<div style="padding:1.5rem;font-size:0.73rem;color:#ef9a9a">Error al cargar.</div>';});
+  }
+
+  renderLeaderboard();
+  setInterval(renderLeaderboard,10000);
+
+});
+</script>
+</body>
+</html>
