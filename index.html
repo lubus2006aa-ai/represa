@@ -753,7 +753,7 @@
 <section id="noticias">
   <div class="section-label">04 — Contexto real</div>
   <h2>Uruguay 2023: cuando las <em>represas se secaron</em></h2>
-  <p class="intro">La maqueta no es solo un modelo: lo que representa pasó de verdad. En 2023 Uruguay vivió la peor crisis hídrica en 74 años, y las represas fueron protagonistas.</p>
+  <p class="intro">Tu maqueta no es solo un modelo: lo que representa pasó de verdad. En 2023 Uruguay vivió la peor crisis hídrica en 74 años, y las represas fueron protagonistas.</p>
 
   <div class="news-grid">
 
@@ -969,46 +969,67 @@ document.addEventListener('DOMContentLoaded', function() {
     saveScore(playerName, score, total, pct);
   }
 
+  var SUPA_URL = 'https://hopplkyuqelidytqixzv.supabase.co';
+  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvcHBsa3l1cWVsaWR5dHFpeHp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MTY2NDcsImV4cCI6MjA4OTQ5MjY0N30.FSn9rqctf5QA8Yb1B1b8CFlS6cJI-Yjwrv9PoKUbEn8';
+
   function saveScore(name, sc, tot, pct) {
-    try {
-      var existing = [];
-      try { existing = JSON.parse(localStorage.getItem('represa_scores')) || []; } catch(e) {}
-      existing.push({ name: name, score: sc, total: tot, pct: pct, date: new Date().toLocaleDateString('es-UY') });
-      localStorage.setItem('represa_scores', JSON.stringify(existing));
-    } catch(e) {}
+    fetch(SUPA_URL + '/rest/v1/resultados', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        nombre: name,
+        puntaje: sc,
+        total: tot,
+        porcentaje: pct,
+        fecha: new Date().toLocaleDateString('es-UY')
+      })
+    }).catch(function(e) { console.warn('Error guardando:', e); });
   }
 
   // ── LEADERBOARD CON CONTRASEÑA ──
-  var PASSWORD = 'profedanosun10';
-
-  function loadScores() {
-    try { return JSON.parse(localStorage.getItem('represa_scores')) || []; } catch(e) { return []; }
-  }
+  var PASSWORD = 'represa2023';
 
   function renderLeaderboard() {
-    var data = loadScores();
-    data.sort(function(a,b){ return b.pct - a.pct || b.score - a.score; });
     var el = document.getElementById('lbList');
-    if (data.length === 0) {
-      el.innerHTML = '<p style="font-size:0.75rem;color:rgba(232,244,253,0.3);padding:1rem 0">Todavía no hay resultados registrados.</p>';
-      return;
-    }
-    var medals = ['🥇','🥈','🥉'];
-    var rows = data.map(function(r, i) {
-      var medal = medals[i] || (i+1)+'.';
-      var highlight = i === 0 ? 'color:var(--acento2);font-weight:bold' : 'color:rgba(232,244,253,0.75)';
-      return '<tr style="' + highlight + '"><td style="padding:0.7em 0.8em">' + medal + ' ' + r.name + '</td>' +
-        '<td style="padding:0.7em 0.8em">' + r.score + '/' + r.total + '</td>' +
-        '<td style="padding:0.7em 0.8em">' + r.pct + '%</td>' +
-        '<td style="padding:0.7em 0.8em;color:rgba(232,244,253,0.35)">' + (r.date||'') + '</td></tr>';
-    }).join('');
-    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.75rem">' +
-      '<thead><tr style="font-size:0.65rem;letter-spacing:0.1em;color:var(--acento);border-bottom:1px solid rgba(77,184,232,0.3)">' +
-      '<th style="padding:0.6em 0.8em;text-align:left">Nombre</th>' +
-      '<th style="padding:0.6em 0.8em;text-align:left">Puntaje</th>' +
-      '<th style="padding:0.6em 0.8em;text-align:left">%</th>' +
-      '<th style="padding:0.6em 0.8em;text-align:left">Fecha</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>';
+    el.innerHTML = '<p style="font-size:0.75rem;color:rgba(232,244,253,0.4);padding:1rem 0">Cargando resultados...</p>';
+    fetch(SUPA_URL + '/rest/v1/resultados?select=*&order=porcentaje.desc,puntaje.desc', {
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY
+      }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || data.length === 0) {
+        el.innerHTML = '<p style="font-size:0.75rem;color:rgba(232,244,253,0.3);padding:1rem 0">Todavía no hay resultados registrados.</p>';
+        return;
+      }
+      var medals = ['🥇','🥈','🥉'];
+      var rows = data.map(function(r, i) {
+        var medal = medals[i] || (i+1)+'.';
+        var highlight = i === 0 ? 'color:var(--acento2);font-weight:bold' : 'color:rgba(232,244,253,0.75)';
+        return '<tr style="' + highlight + '">' +
+          '<td style="padding:0.7em 0.8em">' + medal + ' ' + r.nombre + '</td>' +
+          '<td style="padding:0.7em 0.8em">' + r.puntaje + '/' + r.total + '</td>' +
+          '<td style="padding:0.7em 0.8em">' + r.porcentaje + '%</td>' +
+          '<td style="padding:0.7em 0.8em;color:rgba(232,244,253,0.35)">' + (r.fecha||'') + '</td></tr>';
+      }).join('');
+      el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.75rem">' +
+        '<thead><tr style="font-size:0.65rem;letter-spacing:0.1em;color:var(--acento);border-bottom:1px solid rgba(77,184,232,0.3)">' +
+        '<th style="padding:0.6em 0.8em;text-align:left">Nombre</th>' +
+        '<th style="padding:0.6em 0.8em;text-align:left">Puntaje</th>' +
+        '<th style="padding:0.6em 0.8em;text-align:left">%</th>' +
+        '<th style="padding:0.6em 0.8em;text-align:left">Fecha</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>';
+    })
+    .catch(function() {
+      el.innerHTML = '<p style="font-size:0.75rem;color:#ef9a9a;padding:1rem 0">Error al cargar resultados.</p>';
+    });
   }
 
   document.getElementById('pwdBtn').addEventListener('click', function() {
@@ -1029,9 +1050,14 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('refreshBtn').addEventListener('click', renderLeaderboard);
 
   document.getElementById('clearBtn').addEventListener('click', function() {
-    if (confirm('¿Borrar todos los resultados guardados?')) {
-      localStorage.removeItem('represa_scores');
-      renderLeaderboard();
+    if (confirm('¿Borrar todos los resultados?')) {
+      fetch(SUPA_URL + '/rest/v1/resultados?id=gte.0', {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY
+        }
+      }).then(renderLeaderboard).catch(function(e) { console.warn(e); });
     }
   });
 
