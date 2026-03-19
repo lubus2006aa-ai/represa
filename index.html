@@ -753,7 +753,7 @@
 <section id="noticias">
   <div class="section-label">04 — Contexto real</div>
   <h2>Uruguay 2023: cuando las <em>represas se secaron</em></h2>
-  <p class="intro">Tu maqueta no es solo un modelo: lo que representa pasó de verdad. En 2023 Uruguay vivió la peor crisis hídrica en 74 años, y las represas fueron protagonistas.</p>
+  <p class="intro">La maqueta no es solo un modelo: lo que representa pasó de verdad. En 2023 Uruguay vivió la peor crisis hídrica en 74 años, y las represas fueron protagonistas.</p>
 
   <div class="news-grid">
 
@@ -1070,13 +1070,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Polling cada 10 segundos como fallback confiable
   setInterval(renderLeaderboard, 10000);
 
-  document.getElementById('clearBtn').addEventListener('click', function() {
-    if (confirm('¿Borrar todos los resultados?')) {
-      fetch(SUPA_URL + '/rest/v1/resultados?id=gte.0', {
-        method: 'DELETE',
-        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
-      }).then(renderLeaderboard).catch(function(e) { console.warn(e); });
-    }
+      }
   });
 
 });
